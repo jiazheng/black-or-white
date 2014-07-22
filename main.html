@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>自动判定文字颜色</title>
+<style>
+body {
+    font-family:sans-serif;
+}
+img {
+    height:280px;
+}
+.img-wrapper {
+    position:relative;
+    float:left;
+}
+.img-text {
+    position:absolute;
+    text-align:center;
+    width:100%;
+    top:40%;
+}
+</style>	
+</head>
+<body>
+<div class="img-wrapper">
+    <span id="text01" class="img-text">测试测试测试</span>
+    <img onload="process(this, '01')" src="images/img01.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text02" class="img-text">测试测试测试</span>
+    <img onload="process(this, '02')" src="images/img02.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text03" class="img-text">测试测试测试</span>
+    <img onload="process(this, '03')" src="images/img03.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text04" class="img-text">测试测试测试</span>
+    <img onload="process(this, '04')" src="images/img04.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text05" class="img-text">测试测试测试</span>
+    <img onload="process(this, '05')" src="images/img05.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text06" class="img-text">测试测试测试</span>
+    <img onload="process(this, '06')" src="images/img06.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text07" class="img-text">测试测试测试</span>
+    <img onload="process(this, '07')" src="images/img07.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text08" class="img-text">测试测试测试</span>
+    <img onload="process(this, '08')" src="images/img08.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text09" class="img-text">测试测试测试</span>
+    <img onload="process(this, '09')" src="images/img09.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text10" class="img-text">测试测试测试</span>
+    <img onload="process(this, '10')" src="images/img10.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text11" class="img-text">测试测试测试</span>
+    <img onload="process(this, '11')" src="images/img11.jpg" />
+</div>
+<div class="img-wrapper">
+    <span id="text12" class="img-text">测试测试测试</span>
+    <img onload="process(this, '12')" src="images/img12.jpg" />
+</div>
+<script>
+var canvas = document.createElement('canvas');
+canvas.width = canvas.height = 1000;
+var ctx = canvas.getContext('2d');
+function process(img, textIndex) {
+    
+    var width = img.width;
+    var height = img.height;
+    ctx.drawImage(img, 0, 0);
+    var imageData = ctx.getImageData(0, 0, width, height);
+    
+    if (window.Worker) {
+        // 使用webworker
+        var processWorker = new Worker('process.js');
+        processWorker._textIndex = textIndex;
+        processWorker.addEventListener('message', function(e){
+            document.getElementById('text' + processWorker._textIndex).style.color = e.data;
+        });
+        processWorker.postMessage({
+            'imageData': imageData,
+            'width': width,
+            'height': height
+        });
+        return;
+    }
+    
+    var startIndex = width * 100 * 4;
+    var endIndex = startIndex + width * 40 * 4;
+    var res = 0;
+    var index = 0;
+    var bright = 0;
+    var dark = 0;
+    var halfWidth = Math.round(width / 2);
+    for (var i = startIndex; i < endIndex; i += 4) {
+        index ++;
+        var r = imageData.data[i];
+        var g = imageData.data[i + 1];
+        var b = imageData.data[i + 2];
+        var ave = (r + g + b) / 3;
+        // 该点到中心的距离，用作加权，数值越小，权重越大。
+        var w = Math.abs(halfWidth - (i / 4) % width);
+        var factor = 1 - w / halfWidth;
+        if (ave > 128) {
+            bright += factor;
+        } else {
+            dark += factor;
+        }
+        res += ave;
+    }
+    var contrastRatio = bright / dark;
+    var averageColor = res / index;
+    if (contrastRatio > 1) {
+        document.getElementById('text' + textIndex).style.color = 'black';
+    } else {
+        document.getElementById('text' + textIndex).style.color = 'white';
+    }
+    //console.log(textIndex, averageColor, contrastRatio);
+}
+</script>
+</body>
+</html>
